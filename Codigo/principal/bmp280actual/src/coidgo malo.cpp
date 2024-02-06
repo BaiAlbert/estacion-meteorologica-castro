@@ -1,3 +1,4 @@
+
 /* 
 // INICIALMENTE COMO VOY A COMUNICARME POR I2C TENGO QUE AVERIGUAR EL DIRECCIÓN DEL SENSOR
 // en mi caso me da 0x76 y tengo que ir a la libreria en >.pio>libdeps>Adafruit BMP280 Library>Adafruit_BMP280
@@ -59,7 +60,7 @@ void loop()
    */ 
 
 #include <Arduino.h>
-#include <WiFi.h> 
+#include <Wifi.h> 
 #include <HTTPClient.h>      // no es necesario introducirla solo llamarla
 #include <WiFiClient.h>
 #include <Adafruit_BMP280.h>
@@ -67,26 +68,22 @@ void loop()
 #include <Wire.h>            // necesario para sht20
 #include <DFRobot_SHT20.h>   // necesario para sht20
 
-// Librerias para usar ArduinoOTA
-#include <ESPmDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
+#include <AsyncElegantOTA.h>
+#include <Hash.h>
+#include <elegantWebpage.h>
 
 //objetos
 DFRobot_SHT20    sht20;
 Adafruit_BMP280 bmp; // I2C
 WiFiClient client; 
-
 //COLEGIO
 const char* ssid = "CENTRO";
 const char* password = "";
 
 // variables entradas/salidas
 int UVsensorIn = 32; //Output from the sensor uva
-
 // variables para utilizar fuera de su función
 float uvIntensity;
-
 // variables pluviometro
 const byte sensor=5;
 const int tiempoRebote=500;
@@ -112,61 +109,6 @@ float mapfloat(float x, float in_min, float in_max, float out_min, float out_max
 void setup()
 {
   Serial.begin(9600);
-  // Principio del codigo ArduinoOTA
-  Serial.println("Booting");
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Connection Failed! Rebooting...");
-    delay(5000);
-    ESP.restart();
-  }
-
-  // Port defaults to 3232
-  // ArduinoOTA.setPort(3232);
-
-  // Hostname defaults to esp3232-[MAC]
-  // ArduinoOTA.setHostname("myesp32");
-
-  // No authentication by default
-  // ArduinoOTA.setPassword("admin");
-
-  // Password can be set with it's md5 value as well
-  // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-  // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
-
-  ArduinoOTA
-    .onStart([]() {
-      String type;
-      if (ArduinoOTA.getCommand() == U_FLASH)
-        type = "sketch";
-      else // U_SPIFFS
-        type = "filesystem";
-
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-      Serial.println("Start updating " + type);
-    })
-    .onEnd([]() {
-      Serial.println("\nEnd");
-    })
-    .onProgress([](unsigned int progress, unsigned int total) {
-      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    })
-    .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
-      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-      else if (error == OTA_END_ERROR) Serial.println("End Failed");
-    });
-
-  ArduinoOTA.begin();
-  // Fin del codigo ArduinoOTA
-
-  Serial.println("Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
 
   //=======pluviometro====
   pinMode(sensor, INPUT_PULLUP);
@@ -209,7 +151,6 @@ void setup()
 
 void loop() 
 {
-  ArduinoOTA.handle();
   if (millis()-flagEnvio>intervaloEnvio)  // 1h=3600000 sg si el tiempo supera la hora tomo las medidas de todos los vuelcos
   { 
     flagEnvio=millis(); // colocarlo mejor aquí. Si lo colocas al final te va dando retrasos
